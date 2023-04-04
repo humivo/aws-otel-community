@@ -33,13 +33,12 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ASSUME_ROLE_ARN }}
           role-duration-seconds: 1200
           aws-region: us-west-2
-      - name: Grant execute permissions for gradlew
-        if: ${{ contains(${{ matrix.app-language }}, "java-") }}
-        run: chmod +x gradlew
       - name: Build with Gradle
         if: ${{ contains(${{ matrix.app-language }}, "java-") }}
-        run: >
-        ./gradlew jibDockerBuild
+        working-directory: sample-apps/java-sample-app
+        run: |
+          chmod +x gradlew
+          ./gradlew jibDockerBuild
       - name: Run test containers (java)
         if: ${{ contains(${{ matrix.app-language }}, "java-") }}
         run: docker-compose -f docker-compose-java.yml up --abort-on-container-exit
