@@ -24,7 +24,7 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel:4317
       - AWS_REGION=us-west-2
     ports:
-      - '8080:4567'
+      - '8080:8080'
 
   validator:
     image: public.ecr.aws/aws-otel-test/aws-otel-test-validator:alpha
