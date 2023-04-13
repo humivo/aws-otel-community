@@ -15,11 +15,7 @@ import (
 // Contains all of the endpoint logic.
 
 type response struct {
-<<<<<<< HEAD
-	TraceId string `json:"traceId"`
-=======
 	TraceID string `json:"traceId"`
->>>>>>> AddCIJob
 }
 
 type s3Client struct {
@@ -167,7 +163,7 @@ func getXrayTraceID(span trace.Span) string {
 
 func writeResponse(span trace.Span, w http.ResponseWriter) {
 	xrayTraceID := getXrayTraceID(span)
-	payload, _ := json.Marshal(response{TraceId: xrayTraceID})
+	payload, _ := json.Marshal(response{TraceID: xrayTraceID})
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(payload)
 }
