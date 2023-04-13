@@ -100,12 +100,12 @@ func (rqmc *requestBasedMetricCollector) StartTotalRequestCallback() {
 func (rqmc *requestBasedMetricCollector) UpdateTotalBytesSent(ctx context.Context) {
 	min := 0
 	max := 1024
-	rqmc.total_bytes_sent.Add(ctx, int64(rand.Intn(max-min)+min), requestMetricCommonLabels...)
+	rqmc.totalBytesSent.Add(ctx, int64(rand.Intn(max-min)+min), requestMetricCommonLabels...)
 }
 
 // UpdateLatencyTime updates LatencyTime adds an aditional value between 0 and 512 to the histogram distribution.
 func (rqmc *requestBasedMetricCollector) UpdateLatencyTime(ctx context.Context) {
 	min := 0
 	max := 512
-	rqmc.latency_time.Record(ctx, int64(rand.Intn(max-min)+min), requestMetricCommonLabels...)
+	rqmc.latencyTime.Record(ctx, int64(rand.Intn(max-min)+min), requestMetricCommonLabels...)
 }

@@ -106,7 +106,7 @@ func (rmc *randomMetricCollector) RegisterMetricsClient(ctx context.Context, cfg
 
 // updateTimeAlive updates TimeAlive by TimeAliveIncrementer increments.
 func (rmc *randomMetricCollector) updateTimeAlive(ctx context.Context, cfg Config) {
-	rmc.time_alive.Add(ctx, cfg.TimeAliveIncrementer*1000, randomMetricCommonLabels...) // in millisconds
+	rmc.timeAlive.Add(ctx, cfg.TimeAliveIncrementer*1000, randomMetricCommonLabels...) // in millisconds
 }
 
 // updateCpuUsage updates CpuUsage by a value between 0 and CpuUsageUpperBound every SDK call.
