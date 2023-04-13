@@ -10,6 +10,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/sdk/metric/aggregation"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 
 	"go.opentelemetry.io/otel/sdk/metric"
@@ -19,8 +20,6 @@ import (
 
 var cfg = GetConfiguration()
 
-//const grpcEndpoint = "0.0.0.0:4317"
-
 const serviceName = "go"
 
 var testingId = ""
@@ -28,13 +27,13 @@ var testingId = ""
 var tracer = otel.Tracer("github.com/aws-otel-commnunity/sample-apps/go-sample-app/collection")
 
 // Names for metric instruments
-const time_alive = "time_alive"
-const cpu_usage = "cpu_usage"
-const total_heap_size = "total_heap_size"
-const threads_active = "threads_active"
-const total_bytes_sent = "total_bytes_sent"
-const total_api_requests = "total_api_requests"
-const latency_time = "latency_time"
+const timeAlive = "time_alive"
+const cpuUsage = "cpu_usage"
+const totalHeapSize = "total_heap_size"
+const threadsActive = "threads_active"
+const totalBytesSent = "total_bytes_sent"
+const totalApiRequests = "total_api_requests"
+const latencyTime = "latency_time"
 
 // Common attributes for traces and metrics (random, request)
 var requestMetricCommonLabels = []attribute.KeyValue{
@@ -56,7 +55,7 @@ var traceCommonLabels = []attribute.KeyValue{
 	attribute.String("port", cfg.Port),
 }
 
-// StartClient starts the OTEL controller which periodically collects signals and exports them.
+// StartClient starts the traces and metrics providers which periodically collects signals and exports them.
 // Trace exporter and Metric exporter are both configured.
 func StartClient(ctx context.Context) (func(context.Context) error, error) {
 
@@ -68,7 +67,11 @@ func StartClient(ctx context.Context) (func(context.Context) error, error) {
 		semconv.ServiceName("go-sample-app"),
 	)
 	if _, present := os.LookupEnv("OTEL_RESOURCE_ATTRIBUTES"); present {
-		res, _ = resource.New(ctx, resource.WithFromEnv())
+		envResource, err := resource.New(ctx, resource.WithFromEnv())
+		if err != nil {
+			return nil, err
+		}
+		res = envResource
 	}
 
 	// Setup trace related
@@ -84,7 +87,12 @@ func StartClient(ctx context.Context) (func(context.Context) error, error) {
 	if err != nil {
 		return nil, err
 	}
-	meterProvider := metric.NewMeterProvider(metric.WithResource(res), metric.WithReader(metric.NewPeriodicReader(exp)))
+	meterProvider := metric.NewMeterProvider(metric.WithResource(res), metric.WithReader(metric.NewPeriodicReader(exp)), metric.WithView(metric.NewView(
+		metric.Instrument{Name: "mp_histogram"},
+		metric.Stream{Aggregation: aggregation.ExplicitBucketHistogram{
+			Boundaries: []float64{100, 300, 500},
+		}},
+	)),)
 
 	otel.SetMeterProvider(meterProvider)
 
@@ -92,25 +100,23 @@ func StartClient(ctx context.Context) (func(context.Context) error, error) {
 		ctx, cancel := context.WithTimeout(ctx, time.Second)
 		defer cancel()
 
-		defer func() {
-			tpErr := tp.Shutdown(ctx)
-			if tpErr != nil {
-				err = tpErr
-			}
-		}()
 		// pushes any last exports to the receiver
 		err = meterProvider.Shutdown(ctx)
-		return
+		if err != nil {
+			return err
+		}
+		err = tp.Shutdown(ctx)
+		if err != nil {
+			return err
+		}
+		return nil
 	}, nil
 }
 
 // setupTraceProvider configures a trace exporter and an AWS X-Ray ID Generator.
 func setupTraceProvider(ctx context.Context, res *resource.Resource) (*sdktrace.TracerProvider, error) {
 	// INSECURE !! NOT TO BE USED FOR ANYTHING IN PRODUCTION
-
 	traceExporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithInsecure())
-	//otlptracegrpc.WithReconnectionPeriod(50*time.Millisecond))
-	//otlptracegrpc.WithDialOption(grpc.WithBlock()))
 
 	if err != nil {
 		return nil, err
@@ -126,29 +132,3 @@ func setupTraceProvider(ctx context.Context, res *resource.Resource) (*sdktrace.
 	)
 	return tp, nil
 }
-
-// setupMetricsController configures a metric exporter and a controller with a histogram tracking latency.
-/*func setupMetricsController(ctx context.Context) (*controller.Controller, error) {
-	metricClient := otlpmetricgrpc.NewClient(
-		// INSECURE !! NOT TO BE USED FOR ANYTHING IN PRODUCTION
-		otlpmetricgrpc.WithInsecure(),
-		otlpmetricgrpc.WithEndpoint(grpcEndpoint))
-	metricExp, _ := otlpmetric.New(ctx, metricClient)
-
-	controller := controller.New(
-		processor.NewFactory(
-			selector.NewWithHistogramDistribution(
-				histogram.WithExplicitBoundaries([]float64{100, 300, 500}), // Tracking latency
-			),
-			metricExp,
-		),
-		controller.WithExporter(metricExp),
-		controller.WithCollectPeriod(3*time.Second),
-	)
-
-	if err := controller.Start(ctx); err != nil {
-		return nil, err
-	}
-
-	return controller, nil
-}*/

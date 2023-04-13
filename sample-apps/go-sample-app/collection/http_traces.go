@@ -15,7 +15,11 @@ import (
 // Contains all of the endpoint logic.
 
 type response struct {
+<<<<<<< HEAD
 	TraceId string `json:"traceId"`
+=======
+	TraceID string `json:"traceId"`
+>>>>>>> AddCIJob
 }
 
 type s3Client struct {
