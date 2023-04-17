@@ -5,13 +5,14 @@ on:
     branches: [ master, TestIntegWorkflow ]
   workflow_dispatch:
 
+permissions: 
+  id-token: write
+  contents: read
+
 jobs:
   publish_and_test_app:
     name: Build and test sample app
     runs-on: ubuntu-latest
-    permissions: 
-      id-token: write
-      contents: read
     strategy:
       fail-fast: false
       matrix:
