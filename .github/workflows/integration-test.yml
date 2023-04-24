@@ -1,8 +1,11 @@
 name: "Integration Test"
 
 on:
+  pull_request:
+    branches:
+      - master
   push:
-    branches: [ master ]
+    branches: [ master, TestIntegWorkflow ]
   workflow_dispatch:
 
 permissions: 
